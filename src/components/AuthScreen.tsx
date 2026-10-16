@@ -1,19 +1,18 @@
 import React, { useState } from 'react';
-import { CheckSquare, LogIn, UserPlus, Lock, Mail, User, Database, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
+import { CheckSquare, LogIn, UserPlus, Lock, Mail, User, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
 import { authService, INITIAL_REGISTERED_USERS } from '../services/authService';
 import type { UserProfile } from '../types';
 import { soundManager } from '../utils/audio';
 
 interface AuthScreenProps {
   onLoginSuccess: (user: UserProfile) => void;
-  isSupabaseLive: boolean;
-  onOpenConfig: () => void;
+  isSupabaseLive?: boolean;
+  onOpenConfig?: () => void;
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({
   onLoginSuccess,
   isSupabaseLive,
-  onOpenConfig
 }) => {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState('');
@@ -204,23 +203,14 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
           </div>
         </div>
 
-        {/* DB Connection Status Footer */}
-        <div className="auth-footer-bar">
+        {/* Status Footer */}
+        <div className="auth-footer-bar" style={{ justifyContent: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
             <ShieldCheck size={14} color="var(--tosca-600)" />
             <span style={{ fontSize: '0.78rem', color: 'var(--text-secondary)' }}>
-              {isSupabaseLive ? 'Supabase Database Aktif' : 'Penyimpanan Lokal Aktif'}
+              {isSupabaseLive ? 'Tersinkronisasi Cloud Supabase' : 'Mode Penyimpanan Lokal'}
             </span>
           </div>
-          <button
-            type="button"
-            className="btn-ghost"
-            style={{ fontSize: '0.78rem', padding: '4px 8px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-            onClick={onOpenConfig}
-          >
-            <Database size={13} />
-            <span>Konfigurasi DB</span>
-          </button>
         </div>
       </div>
     </div>

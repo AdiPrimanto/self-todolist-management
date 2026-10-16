@@ -25,18 +25,26 @@ export const INITIAL_REGISTERED_USERS: AuthUser[] = [
 ];
 
 class AuthService {
-  private usersKey = 'zentask_registered_users_v1';
-  private sessionKey = 'zentask_session_user_v1';
+  private usersKey = 'zentask_registered_users_v2';
+  private sessionKey = 'zentask_session_user_v2';
 
   constructor() {
     this.initUsers();
   }
 
   private initUsers() {
+    // Bersihkan sesi lama otomatis (v1) agar tidak auto-login ke akun dummy Adiprimanto
+    try {
+      localStorage.removeItem('zentask_session_user_v1');
+      localStorage.removeItem('toscatask_session_user_v1');
+    } catch {
+      // ignore
+    }
+
     if (!localStorage.getItem(this.usersKey)) {
       localStorage.setItem(this.usersKey, JSON.stringify(INITIAL_REGISTERED_USERS));
     }
-    // Tidak auto-login: pengguna harus login terlebih dahulu
+    // Pengguna harus login secara eksplisit
   }
 
   getRegisteredUsers(): AuthUser[] {

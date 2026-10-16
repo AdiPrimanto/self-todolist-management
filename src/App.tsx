@@ -48,6 +48,23 @@ export function App() {
     localStorage.setItem('zentask_theme', isDark ? 'dark' : 'light');
   }, [isDark]);
 
+  // Shortcut rahasia untuk membuka modal konfigurasi Supabase jika dibutuhkan admin (?setup=db atau Ctrl/Cmd+Shift+D)
+  useEffect(() => {
+    if (window.location.search.includes('setup=db') || window.location.search.includes('config=db')) {
+      setIsConfigModalOpen(true);
+    }
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'D' || e.key === 'd')) {
+        e.preventDefault();
+        setIsConfigModalOpen(prev => !prev);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
   const loadData = useCallback(async () => {
     const loadedTodos = await dataService.getTodos();
     const loadedCategories = await dataService.getCategories();
@@ -217,7 +234,6 @@ export function App() {
             setAvailableUsers(authService.getRegisteredUsers());
           }}
           isSupabaseLive={isSupabaseLive}
-          onOpenConfig={() => setIsConfigModalOpen(true)}
         />
         <SupabaseConfigModal
           isOpen={isConfigModalOpen}
@@ -240,8 +256,6 @@ export function App() {
         onToggleTheme={handleToggleTheme}
         isSoundEnabled={isSoundEnabled}
         onToggleSound={handleToggleSound}
-        isSupabaseLive={isSupabaseLive}
-        onOpenConfig={() => setIsConfigModalOpen(true)}
         onOpenAddTodo={() => {
           setEditingTodo(null);
           setIsTodoModalOpen(true);

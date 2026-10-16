@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CheckSquare, Plus, Moon, Sun, Volume2, VolumeX, Database, Users, LogOut, ChevronDown, Check } from 'lucide-react';
+import { CheckSquare, Plus, Moon, Sun, Volume2, VolumeX, Users, LogOut, ChevronDown, Check } from 'lucide-react';
 import type { UserProfile } from '../types';
 
 interface NavbarProps {
@@ -11,8 +11,8 @@ interface NavbarProps {
   onToggleTheme: () => void;
   isSoundEnabled: boolean;
   onToggleSound: () => void;
-  isSupabaseLive: boolean;
-  onOpenConfig: () => void;
+  isSupabaseLive?: boolean;
+  onOpenConfig?: () => void;
   onOpenAddTodo: () => void;
 }
 
@@ -25,8 +25,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   onToggleTheme,
   isSoundEnabled,
   onToggleSound,
-  isSupabaseLive,
-  onOpenConfig,
   onOpenAddTodo,
 }) => {
   const [showUserDropdown, setShowUserDropdown] = useState(false);
@@ -58,17 +56,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
       {/* Actions */}
       <div className="navbar-actions">
-        {/* DB Connection Status Pill */}
-        <button
-          type="button"
-          onClick={onOpenConfig}
-          className={`db-status-pill ${isSupabaseLive ? 'live' : 'demo'}`}
-          title="Klik untuk konfigurasi database Supabase"
-        >
-          <Database size={13} />
-          <span className="db-status-label">{isSupabaseLive ? 'Live' : 'Demo'}</span>
-        </button>
-
         {/* User Profile & Switcher Dropdown */}
         <div style={{ position: 'relative' }} ref={dropdownRef}>
           <button
