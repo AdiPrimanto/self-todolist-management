@@ -36,13 +36,7 @@ class AuthService {
     if (!localStorage.getItem(this.usersKey)) {
       localStorage.setItem(this.usersKey, JSON.stringify(INITIAL_REGISTERED_USERS));
     }
-    // Jika belum ada session, set default user 1 agar langsung siap dipakai
-    if (!localStorage.getItem(this.sessionKey)) {
-      const users = this.getRegisteredUsers();
-      if (users.length > 0) {
-        localStorage.setItem(this.sessionKey, JSON.stringify(users[0]));
-      }
-    }
+    // Tidak auto-login: pengguna harus login terlebih dahulu
   }
 
   getRegisteredUsers(): AuthUser[] {
