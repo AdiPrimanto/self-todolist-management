@@ -5,24 +5,7 @@ export interface AuthUser extends UserProfile {
   password?: string;
 }
 
-export const INITIAL_REGISTERED_USERS: AuthUser[] = [
-  {
-    id: 'user-1',
-    email: 'adi@example.com',
-    name: 'Adiprimanto',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-    role: 'Pemilik (User 1)',
-    password: 'password123'
-  },
-  {
-    id: 'user-2',
-    email: 'partner@example.com',
-    name: 'Partner / Teammate',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
-    role: 'Partner (User 2)',
-    password: 'password123'
-  }
-];
+export const INITIAL_REGISTERED_USERS: AuthUser[] = [];
 
 class AuthService {
   private usersKey = 'zentask_registered_users_v2';
@@ -33,16 +16,17 @@ class AuthService {
   }
 
   private initUsers() {
-    // Bersihkan sesi lama otomatis (v1) agar tidak auto-login ke akun dummy Adiprimanto
+    // Bersihkan sesi dan user dummy lama agar akun uji coba terhapus
     try {
       localStorage.removeItem('zentask_session_user_v1');
       localStorage.removeItem('toscatask_session_user_v1');
+      localStorage.removeItem('zentask_registered_users_v1');
     } catch {
       // ignore
     }
 
     if (!localStorage.getItem(this.usersKey)) {
-      localStorage.setItem(this.usersKey, JSON.stringify(INITIAL_REGISTERED_USERS));
+      localStorage.setItem(this.usersKey, JSON.stringify([]));
     }
     // Pengguna harus login secara eksplisit
   }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { CheckSquare, LogIn, UserPlus, Lock, Mail, User, ArrowRight, ShieldCheck, Sparkles } from 'lucide-react';
-import { authService, INITIAL_REGISTERED_USERS } from '../services/authService';
+import { CheckSquare, LogIn, UserPlus, Lock, Mail, User, ArrowRight, ShieldCheck } from 'lucide-react';
+import { authService } from '../services/authService';
 import type { UserProfile } from '../types';
 import { soundManager } from '../utils/audio';
 
@@ -46,19 +46,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
       }
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const handleQuickDemoLogin = async (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setErrorMsg('');
-    setIsLoading(true);
-    const res = await authService.login(demoEmail, demoPass);
-    setIsLoading(false);
-    if (res.user) {
-      soundManager.playSuccess();
-      onLoginSuccess(res.user);
     }
   };
 
@@ -177,31 +164,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({
             )}
           </button>
         </form>
-
-        {/* Quick Demo Accounts Selection */}
-        <div className="auth-demo-section">
-          <p className="auth-demo-title">
-            <Sparkles size={14} color="var(--tosca-500)" />
-            <span>Pilihan Akun Uji Coba Cepat (2 User):</span>
-          </p>
-          <div className="auth-demo-grid">
-            {INITIAL_REGISTERED_USERS.map((u, idx) => (
-              <button
-                key={u.id}
-                type="button"
-                className="auth-demo-card"
-                onClick={() => handleQuickDemoLogin(u.email, u.password || 'password123')}
-              >
-                <img src={u.avatar} alt={u.name} className="auth-demo-avatar" />
-                <div style={{ textAlign: 'left' }}>
-                  <p className="auth-demo-name">{u.name}</p>
-                  <p className="auth-demo-email">{u.email}</p>
-                </div>
-                <span className="auth-demo-tag">User {idx + 1}</span>
-              </button>
-            ))}
-          </div>
-        </div>
 
         {/* Status Footer */}
         <div className="auth-footer-bar" style={{ justifyContent: 'center' }}>

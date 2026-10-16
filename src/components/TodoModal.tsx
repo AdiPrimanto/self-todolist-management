@@ -285,9 +285,14 @@ export const TodoModal: React.FC<TodoModalProps> = ({
                     value={assignedTo || currentUser.id}
                     onChange={e => setAssignedTo(e.target.value)}
                   >
+                    {!users.some(u => u.id === currentUser.id) && (
+                      <option value={currentUser.id}>
+                        {currentUser.name} ({currentUser.email}) - Saya
+                      </option>
+                    )}
                     {users.map(u => (
                       <option key={u.id} value={u.id}>
-                        {u.name} ({u.email})
+                        {u.name} ({u.email}) {u.id === currentUser.id ? '- Saya' : ''}
                       </option>
                     ))}
                   </select>

@@ -1,11 +1,11 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { CheckSquare, Plus, Moon, Sun, Volume2, VolumeX, Users, LogOut, ChevronDown, Check } from 'lucide-react';
+import { CheckSquare, Plus, Moon, Sun, Volume2, VolumeX, LogOut, ChevronDown } from 'lucide-react';
 import type { UserProfile } from '../types';
 
 interface NavbarProps {
   currentUser: UserProfile;
-  availableUsers: UserProfile[];
-  onSwitchUser: (user: UserProfile) => void;
+  availableUsers?: UserProfile[];
+  onSwitchUser?: (user: UserProfile) => void;
   onLogout: () => void;
   isDark: boolean;
   onToggleTheme: () => void;
@@ -18,8 +18,6 @@ interface NavbarProps {
 
 export const Navbar: React.FC<NavbarProps> = ({
   currentUser,
-  availableUsers,
-  onSwitchUser,
   onLogout,
   isDark,
   onToggleTheme,
@@ -82,31 +80,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                     <span className="profile-menu-role">{currentUser.role}</span>
                   )}
                 </div>
-              </div>
-
-              <div className="profile-menu-divider" />
-
-              {/* User Switcher Section */}
-              <div className="profile-menu-section-title">
-                <Users size={12} />
-                <span>Beralih Pengguna (Testing Sharing):</span>
-              </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', padding: '0 6px' }}>
-                {availableUsers.map(user => (
-                  <button
-                    key={user.id}
-                    type="button"
-                    className={`profile-switch-item ${user.id === currentUser.id ? 'active' : ''}`}
-                    onClick={() => {
-                      onSwitchUser(user);
-                      setShowUserDropdown(false);
-                    }}
-                  >
-                    <img src={user.avatar} alt={user.name} style={{ width: '22px', height: '22px', borderRadius: '50%' }} />
-                    <span style={{ flex: 1, textAlign: 'left', fontSize: '0.82rem' }}>{user.name}</span>
-                    {user.id === currentUser.id && <Check size={14} color="var(--tosca-600)" />}
-                  </button>
-                ))}
               </div>
 
               <div className="profile-menu-divider" />
