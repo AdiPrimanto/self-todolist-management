@@ -16,6 +16,42 @@ CREATE TABLE IF NOT EXISTS public.profiles (
   created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
+-- Auto-create profile saat user mendaftar / ditambahkan di auth.users Supabase
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS TRIGGER AS $$
+BEGIN
+  INSERT INTO public.profiles (id, email, name, avatar, role)
+  VALUES (
+    NEW.id,
+    NEW.email,
+    COALESCE(NEW.raw_user_meta_data->>'name', split_part(NEW.email, '@', 1)),
+    'https://api.dicebear.com/7.x/avataaars/svg?seed=' || NEW.email,
+    'user'
+  )
+  ON CONFLICT (id) DO UPDATE
+  SET email = EXCLUDED.email,
+      name = COALESCE(EXCLUDED.name, public.profiles.name);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+  AFTER INSERT OR UPDATE ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+
+-- Sync user yang sudah dibuat di Supabase Auth ke dalam public.profiles
+INSERT INTO public.profiles (id, email, name, avatar, role)
+SELECT
+  id,
+  email,
+  COALESCE(raw_user_meta_data->>'name', split_part(email, '@', 1)),
+  'https://api.dicebear.com/7.x/avataaars/svg?seed=' || email,
+  'user'
+FROM auth.users
+ON CONFLICT (id) DO UPDATE
+SET email = EXCLUDED.email;
+
 -- 3. Categories Table
 CREATE TABLE IF NOT EXISTS public.categories (
   id UUID DEFAULT uuid_generate_v4() PRIMARY KEY,

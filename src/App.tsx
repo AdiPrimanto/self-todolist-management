@@ -68,9 +68,10 @@ export function App() {
   const loadData = useCallback(async () => {
     const loadedTodos = await dataService.getTodos();
     const loadedCategories = await dataService.getCategories();
+    const loadedUsers = await dataService.getUsers();
     setTodos(loadedTodos);
     setCategories(loadedCategories);
-    setAvailableUsers(authService.getRegisteredUsers());
+    setAvailableUsers(loadedUsers);
     setIsSupabaseLive(isSupabaseConfigured());
   }, []);
 
@@ -228,10 +229,10 @@ export function App() {
     return (
       <div className="app-container" style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <AuthScreen
-          onLoginSuccess={user => {
+          onLoginSuccess={async user => {
             setCurrentUser(user);
             dataService.setCurrentUser(user);
-            setAvailableUsers(authService.getRegisteredUsers());
+            await loadData();
           }}
           isSupabaseLive={isSupabaseLive}
         />

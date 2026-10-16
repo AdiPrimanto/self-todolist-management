@@ -8,8 +8,8 @@ export interface AuthUser extends UserProfile {
 export const INITIAL_REGISTERED_USERS: AuthUser[] = [];
 
 class AuthService {
-  private usersKey = 'zentask_registered_users_v2';
-  private sessionKey = 'zentask_session_user_v2';
+  private usersKey = 'zentask_registered_users_v3';
+  private sessionKey = 'zentask_session_user_v3';
 
   constructor() {
     this.initUsers();
@@ -21,6 +21,8 @@ class AuthService {
       localStorage.removeItem('zentask_session_user_v1');
       localStorage.removeItem('toscatask_session_user_v1');
       localStorage.removeItem('zentask_registered_users_v1');
+      localStorage.removeItem('zentask_session_user_v2');
+      localStorage.removeItem('zentask_registered_users_v2');
     } catch {
       // ignore
     }
@@ -34,11 +36,31 @@ class AuthService {
   getRegisteredUsers(): AuthUser[] {
     try {
       const data = localStorage.getItem(this.usersKey);
-      if (data) return JSON.parse(data);
+      if (data) {
+        const parsed: AuthUser[] = JSON.parse(data);
+        return parsed.filter(u => !u.email.includes('@example.com') && !u.id.startsWith('user-'));
+      }
     } catch {
       // fallback
     }
-    return INITIAL_REGISTERED_USERS;
+    return [];
+  }
+
+  async syncProfileToSupabase(user: UserProfile) {
+    if (!isSupabaseConfigured()) return;
+    const supabase = getSupabase();
+    if (!supabase) return;
+    try {
+      await supabase.from('profiles').upsert({
+        id: user.id,
+        email: user.email,
+        name: user.name,
+        avatar: user.avatar,
+        role: user.role || 'user'
+      });
+    } catch (e) {
+      console.warn('Gagal sync profile ke Supabase:', e);
+    }
   }
 
   getCurrentUser(): UserProfile | null {
@@ -95,6 +117,7 @@ class AuthService {
               avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
               role: 'User'
             };
+            await this.syncProfileToSupabase(userProfile);
             localStorage.setItem(this.sessionKey, JSON.stringify(userProfile));
             return { user: userProfile };
           }
@@ -159,6 +182,7 @@ class AuthService {
               avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${cleanEmail}`,
               role: 'User'
             };
+            await this.syncProfileToSupabase(userProfile);
             localStorage.setItem(this.sessionKey, JSON.stringify(userProfile));
             return { user: userProfile };
           }

@@ -1,22 +1,8 @@
 import type { Todo, Category, UserProfile } from '../types';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
+import { authService } from './authService';
 
-export const DEMO_USERS: UserProfile[] = [
-  {
-    id: 'user-1',
-    email: 'adi@example.com',
-    name: 'Adiprimanto',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
-    role: 'Owner'
-  },
-  {
-    id: 'user-2',
-    email: 'partner@example.com',
-    name: 'Partner / Teammate',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
-    role: 'Collaborator'
-  }
-];
+export const DEMO_USERS: UserProfile[] = [];
 
 export const INITIAL_CATEGORIES: Category[] = [
   { id: 'cat-1', name: 'Pribadi', icon: 'User', color: '#0d9488', is_default: true },
@@ -27,99 +13,8 @@ export const INITIAL_CATEGORIES: Category[] = [
   { id: 'cat-6', name: 'Kesehatan & Habit', icon: 'Heart', color: '#e11d48', is_default: true }
 ];
 
-// Helper untuk format tanggal ISO lokal
-const getOffsetDateString = (offsetDays: number, hours: number, minutes: number) => {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  d.setHours(hours, minutes, 0, 0);
-  const pad = (n: number) => n.toString().padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
-};
+export const INITIAL_TODOS: Todo[] = [];
 
-export const INITIAL_TODOS: Todo[] = [
-  {
-    id: 'todo-1',
-    title: 'Bayar Tagihan Internet & Listrik Bulanan',
-    description: 'Cek nomor tagihan di aplikasi PLN dan Indihome, jangan sampai kena denda lewat tanggal 15.',
-    due_date: getOffsetDateString(-1, 20, 0), // Overdue kemarin jam 20:00!
-    priority: 'urgent',
-    status: 'todo',
-    progress_percent: 0,
-    category_id: 'cat-5',
-    created_by: 'user-1',
-    assigned_to: 'user-2',
-    is_shared: true,
-    is_recurring: 'monthly',
-    subtasks: [
-      { id: 'st-1', todo_id: 'todo-1', title: 'Cek tagihan Indihome via mobile banking', is_completed: false },
-      { id: 'st-2', todo_id: 'todo-1', title: 'Top-up token listrik rumah', is_completed: false }
-    ],
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
-    updated_at: new Date(Date.now() - 86400000 * 2).toISOString()
-  },
-  {
-    id: 'todo-2',
-    title: 'Review Fitur & Deploy Supabase Todo App',
-    description: 'Pastikan skema database berjalan normal, styling tosca minimalis rapi, dan animasi GSAP lancar.',
-    due_date: getOffsetDateString(0, 19, 30), // Hari ini jam 19:30
-    priority: 'high',
-    status: 'in_progress',
-    progress_percent: 66,
-    category_id: 'cat-2',
-    created_by: 'user-1',
-    assigned_to: 'user-1',
-    is_shared: false,
-    is_recurring: 'none',
-    subtasks: [
-      { id: 'st-3', todo_id: 'todo-2', title: 'Setup database tables & RLS policies', is_completed: true },
-      { id: 'st-4', todo_id: 'todo-2', title: 'Implementasi UI komponen tosca minimalis', is_completed: true },
-      { id: 'st-5', todo_id: 'todo-2', title: 'Testing sharing antar user & pengingat', is_completed: false }
-    ],
-    created_at: new Date(Date.now() - 86400000).toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'todo-3',
-    title: 'Belanja Mingguan Sayur & Buah Segar',
-    description: 'Beli stok mingguan di supermarket atau pasar segar. Masukkan daftar belanja ke subtask.',
-    due_date: getOffsetDateString(1, 9, 0), // Besok jam 09:00 pagi
-    priority: 'medium',
-    status: 'todo',
-    progress_percent: 25,
-    category_id: 'cat-3',
-    created_by: 'user-2',
-    assigned_to: 'user-1',
-    is_shared: true,
-    is_recurring: 'weekly',
-    subtasks: [
-      { id: 'st-6', todo_id: 'todo-3', title: 'Alpukat & Apel Fuji 1kg', is_completed: true },
-      { id: 'st-7', todo_id: 'todo-3', title: 'Bayam & Brokoli hidroponik', is_completed: false },
-      { id: 'st-8', todo_id: 'todo-3', title: 'Dada ayam fillet 1kg', is_completed: false },
-      { id: 'st-9', todo_id: 'todo-3', title: 'Minyak kelapa & bumbu dapur', is_completed: false }
-    ],
-    created_at: new Date().toISOString(),
-    updated_at: new Date().toISOString()
-  },
-  {
-    id: 'todo-4',
-    title: 'Membaca Doa Pembuka Rezeki & Dzikir Pagi',
-    description: 'Amalan rutin pagi hari setelah subuh untuk kelancaran rezeki dan ketenangan berkah.',
-    due_date: getOffsetDateString(0, 6, 30),
-    priority: 'low',
-    status: 'completed',
-    progress_percent: 100,
-    category_id: 'cat-4',
-    created_by: 'user-1',
-    is_shared: false,
-    is_recurring: 'daily',
-    subtasks: [
-      { id: 'st-10', todo_id: 'todo-4', title: 'Dzikir pagi Al-Ma’tsurat', is_completed: true },
-      { id: 'st-11', todo_id: 'todo-4', title: 'Doa pembuka rezeki & sedekah subuh', is_completed: true }
-    ],
-    created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
-    updated_at: new Date().toISOString()
-  }
-];
 
 class DataService {
   private todosKey = 'zentask_todos_v1';
@@ -131,37 +26,66 @@ class DataService {
   }
 
   private initLocalStorage() {
-    // Migrasi data jika sebelumnya tersimpan dengan key toscatask
+    // Bersihkan data dummy lama jika ada
+    try {
+      localStorage.removeItem('toscatask_todos_v1');
+      localStorage.removeItem('toscatask_categories_v1');
+      localStorage.removeItem('toscatask_current_user_v1');
+    } catch {
+      // ignore
+    }
+
     if (!localStorage.getItem(this.todosKey)) {
-      const oldTodos = localStorage.getItem('toscatask_todos_v1');
-      localStorage.setItem(this.todosKey, oldTodos || JSON.stringify(INITIAL_TODOS));
+      localStorage.setItem(this.todosKey, JSON.stringify(INITIAL_TODOS));
     }
     if (!localStorage.getItem(this.categoriesKey)) {
-      const oldCats = localStorage.getItem('toscatask_categories_v1');
-      localStorage.setItem(this.categoriesKey, oldCats || JSON.stringify(INITIAL_CATEGORIES));
-    }
-    if (!localStorage.getItem(this.currentUserKey)) {
-      const oldUser = localStorage.getItem('toscatask_current_user_v1');
-      localStorage.setItem(this.currentUserKey, oldUser || JSON.stringify(DEMO_USERS[0]));
+      localStorage.setItem(this.categoriesKey, JSON.stringify(INITIAL_CATEGORIES));
     }
   }
 
-  getCurrentUser(): UserProfile {
+  getCurrentUser(): UserProfile | null {
     try {
       const data = localStorage.getItem(this.currentUserKey);
       if (data) return JSON.parse(data);
     } catch {
       // fallback
     }
-    return DEMO_USERS[0];
+    return null;
   }
 
   setCurrentUser(user: UserProfile) {
     localStorage.setItem(this.currentUserKey, JSON.stringify(user));
   }
 
+  async getUsers(): Promise<UserProfile[]> {
+    if (isSupabaseConfigured()) {
+      const supabase = getSupabase();
+      if (supabase) {
+        try {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('*')
+            .order('name');
+
+          if (!error && data && data.length > 0) {
+            return data.map(p => ({
+              id: p.id,
+              email: p.email,
+              name: p.name || p.email.split('@')[0],
+              avatar: p.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${p.email}`,
+              role: p.role || 'Member'
+            }));
+          }
+        } catch (e) {
+          console.warn('Gagal fetch profiles dari Supabase:', e);
+        }
+      }
+    }
+    return authService.getRegisteredUsers();
+  }
+
   getAvailableUsers(): UserProfile[] {
-    return DEMO_USERS;
+    return authService.getRegisteredUsers();
   }
 
   async getCategories(): Promise<Category[]> {
@@ -366,7 +290,7 @@ class DataService {
   resetToDefaultData() {
     localStorage.setItem(this.todosKey, JSON.stringify(INITIAL_TODOS));
     localStorage.setItem(this.categoriesKey, JSON.stringify(INITIAL_CATEGORIES));
-    localStorage.setItem(this.currentUserKey, JSON.stringify(DEMO_USERS[0]));
+    localStorage.removeItem(this.currentUserKey);
   }
 }
 
