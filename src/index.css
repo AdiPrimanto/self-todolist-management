@@ -328,10 +328,10 @@ a {
   gap: 14px;
 }
 
-@media (max-width: 520px) {
+@media (max-width: 640px) {
   .form-grid-2col {
     grid-template-columns: 1fr;
-    gap: 0;
+    gap: 12px;
   }
 }
 
@@ -339,7 +339,7 @@ a {
 .modal-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(4, 47, 46, 0.45);
+  background: rgba(4, 47, 46, 0.5);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
   display: flex;
@@ -347,6 +347,7 @@ a {
   justify-content: center;
   z-index: 1000;
   padding: 20px;
+  overflow-y: auto;
 }
 
 .modal-content {
@@ -358,17 +359,23 @@ a {
   max-width: 580px;
   max-height: 90vh;
   overflow-y: auto;
+  overflow-x: hidden;
   position: relative;
   display: flex;
   flex-direction: column;
 }
 
 .modal-header {
-  padding: 20px 24px;
+  padding: 18px 24px;
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  position: sticky;
+  top: 0;
+  background: var(--bg-surface);
+  z-index: 20;
+  flex-shrink: 0;
 }
 
 .modal-body {
@@ -376,6 +383,8 @@ a {
   display: flex;
   flex-direction: column;
   gap: 16px;
+  overflow-x: hidden;
+  min-width: 0;
 }
 
 .modal-footer {
@@ -385,6 +394,11 @@ a {
   align-items: center;
   justify-content: flex-end;
   gap: 12px;
+  background: var(--bg-surface);
+  position: sticky;
+  bottom: 0;
+  z-index: 20;
+  flex-shrink: 0;
 }
 
 /* Responsive Container & Modal Enhancements */
@@ -399,22 +413,38 @@ a {
   }
 
   .modal-content {
-    border-radius: 24px 24px 0 0;
-    max-height: 92vh;
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    max-width: 100% !important;
+    width: 100%;
+    margin: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
     border-bottom: none;
+    padding-bottom: env(safe-area-inset-bottom, 12px);
   }
 
   .modal-header {
-    padding: 16px 18px;
+    padding: 14px 18px;
   }
 
   .modal-body {
-    padding: 18px;
-    gap: 12px;
+    padding: 16px 18px;
+    gap: 14px;
   }
 
   .modal-footer {
-    padding: 14px 18px;
+    padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .modal-footer .btn {
+    flex: 1;
+    min-width: 100px;
+    justify-content: center;
+    padding: 10px 14px;
+    font-size: 0.86rem;
   }
 
   .btn {

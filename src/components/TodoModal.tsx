@@ -237,25 +237,15 @@ export const TodoModal: React.FC<TodoModalProps> = ({
             </div>
 
             {/* Sharing Switch */}
-            <div
-              style={{
-                padding: '14px',
-                borderRadius: 'var(--radius-md)',
-                background: 'var(--bg-subtle)',
-                border: '1px solid var(--border-subtle)',
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '10px'
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  {isShared ? <Users size={18} color="#0284c7" /> : <User size={18} color="var(--tosca-600)" />}
-                  <div>
+            <div className="modal-sharing-card">
+              <div className="modal-sharing-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
+                  {isShared ? <Users size={18} color="#0284c7" style={{ flexShrink: 0 }} /> : <User size={18} color="var(--tosca-600)" style={{ flexShrink: 0 }} />}
+                  <div style={{ minWidth: 0, flex: 1 }}>
                     <p style={{ fontSize: '0.88rem', fontWeight: 700 }}>
                       {isShared ? 'Tugas Bersama (Shared)' : 'Tugas Pribadi'}
                     </p>
-                    <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>
+                    <p style={{ fontSize: '0.74rem', color: 'var(--text-muted)', lineHeight: 1.3 }}>
                       {isShared
                         ? 'Dapat dilihat dan dikerjakan bersama oleh partner'
                         : 'Hanya bisa dilihat oleh Anda sendiri'}
@@ -266,7 +256,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
                 <button
                   type="button"
                   className={`btn ${isShared ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ padding: '6px 12px', fontSize: '0.78rem' }}
+                  style={{ padding: '6px 12px', fontSize: '0.78rem', flexShrink: 0 }}
                   onClick={() => setIsShared(!isShared)}
                 >
                   {isShared ? 'Ganti ke Pribadi' : 'Bagikan ke Partner'}
@@ -275,7 +265,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
 
               {/* Assignee if shared */}
               {isShared && (
-                <div style={{ marginTop: '6px' }}>
+                <div style={{ marginTop: '4px' }}>
                   <label className="form-label" htmlFor="todo-assignee-select" style={{ fontSize: '0.78rem' }}>
                     Tugaskan Kepada:
                   </label>
@@ -284,6 +274,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
                     className="form-select"
                     value={assignedTo || currentUser.id}
                     onChange={e => setAssignedTo(e.target.value)}
+                    style={{ maxWidth: '100%' }}
                   >
                     {!users.some(u => u.id === currentUser.id) && (
                       <option value={currentUser.id}>
@@ -326,7 +317,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
               </label>
 
               {/* Input tambah subtask */}
-              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', width: '100%' }}>
                 <input
                   type="text"
                   className="form-input"
@@ -339,12 +330,14 @@ export const TodoModal: React.FC<TodoModalProps> = ({
                       handleAddSubtask();
                     }
                   }}
+                  style={{ flex: 1, minWidth: 0 }}
                 />
                 <button
                   type="button"
                   className="btn btn-secondary"
                   onClick={handleAddSubtask}
-                  style={{ padding: '0 14px' }}
+                  style={{ padding: '0 14px', flexShrink: 0 }}
+                  aria-label="Tambah subtask"
                 >
                   <Plus size={16} />
                 </button>
@@ -360,29 +353,42 @@ export const TodoModal: React.FC<TodoModalProps> = ({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'space-between',
-                        padding: '6px 10px',
+                        padding: '7px 10px',
                         background: 'var(--bg-subtle)',
                         borderRadius: 'var(--radius-sm)',
-                        fontSize: '0.84rem'
+                        fontSize: '0.84rem',
+                        gap: '8px',
+                        width: '100%',
+                        boxSizing: 'border-box'
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: 0 }}>
                         <button
                           type="button"
                           className={`subtask-checkbox ${st.is_completed ? 'checked' : ''}`}
                           onClick={() => handleToggleSubtaskInModal(st.id)}
                           aria-label={st.is_completed ? 'Tandai subtask belum selesai' : 'Tandai subtask selesai'}
+                          style={{ flexShrink: 0 }}
                         >
                           {st.is_completed && <Check size={12} strokeWidth={3} />}
                         </button>
-                        <span style={{ textDecoration: st.is_completed ? 'line-through' : 'none', color: st.is_completed ? 'var(--text-muted)' : 'inherit' }}>
+                        <span
+                          style={{
+                            textDecoration: st.is_completed ? 'line-through' : 'none',
+                            color: st.is_completed ? 'var(--text-muted)' : 'inherit',
+                            wordBreak: 'break-word',
+                            overflowWrap: 'anywhere',
+                            minWidth: 0,
+                            flex: 1
+                          }}
+                        >
                           {st.title}
                         </span>
                       </div>
                       <button
                         type="button"
                         className="btn-danger-ghost"
-                        style={{ padding: '4px', borderRadius: '4px' }}
+                        style={{ padding: '4px', borderRadius: '4px', flexShrink: 0 }}
                         onClick={() => handleRemoveSubtask(st.id)}
                         aria-label="Hapus subtask"
                       >

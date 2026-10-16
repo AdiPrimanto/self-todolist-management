@@ -102,11 +102,15 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
                   border: '1px solid var(--border-subtle)',
                   color: selectedColor,
                   fontWeight: 700,
-                  fontSize: '0.9rem'
+                  fontSize: '0.9rem',
+                  maxWidth: '100%',
+                  boxSizing: 'border-box'
                 }}
               >
                 <CategoryIcon name={selectedIcon} size={18} color={selectedColor} />
-                <span>{name || 'Nama Kategori'}</span>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {name || 'Nama Kategori'}
+                </span>
               </div>
             </div>
 
@@ -132,7 +136,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
             {/* Color Swatches */}
             <div className="form-group">
               <label className="form-label">Pilih Warna Aksen</label>
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', maxWidth: '100%' }}>
                 {PRESET_COLORS.map(color => (
                   <button
                     key={color}
@@ -145,7 +149,8 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
                       background: color,
                       border: selectedColor === color ? '3px solid #ffffff' : '2px solid transparent',
                       boxShadow: selectedColor === color ? `0 0 0 2px ${color}` : 'none',
-                      transition: 'transform 0.15s'
+                      transition: 'transform 0.15s',
+                      flexShrink: 0
                     }}
                   />
                 ))}

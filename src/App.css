@@ -441,6 +441,7 @@
   align-items: flex-start;
   gap: 12px;
   flex: 1;
+  min-width: 0;
 }
 
 .custom-checkbox-btn {
@@ -473,6 +474,9 @@
   font-weight: 700;
   color: var(--text-primary);
   line-height: 1.35;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
 }
 
 .todo-card-item.completed .todo-title {
@@ -487,6 +491,8 @@
   margin-top: 4px;
   margin-left: 38px;
   margin-bottom: 12px;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 /* Metadata chips row */
@@ -714,6 +720,14 @@
   transition: all var(--transition-fast);
 }
 
+.icon-picker-item span {
+  width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .icon-picker-item:hover, .icon-picker-item.selected {
   border-color: var(--tosca-500);
   background: var(--tosca-50);
@@ -724,6 +738,71 @@
 [data-theme='dark'] .icon-picker-item.selected {
   background: var(--tosca-900);
   color: var(--tosca-200);
+}
+
+/* Modal Responsive Components */
+.modal-sharing-card {
+  padding: 14px;
+  border-radius: var(--radius-md);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.modal-sharing-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+@media (max-width: 520px) {
+  .modal-sharing-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .modal-sharing-header .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* Config Modal Responsive Footer */
+.config-modal-footer {
+  justify-content: space-between;
+}
+
+.config-footer-actions {
+  display: flex;
+  gap: 8px;
+}
+
+@media (max-width: 520px) {
+  .config-modal-footer {
+    flex-direction: column-reverse;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .config-footer-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .config-footer-actions .btn {
+    flex: 1;
+    justify-content: center;
+  }
+
+  .config-modal-footer > .btn-ghost {
+    width: 100%;
+    justify-content: center;
+  }
 }
 
 /* ================================================================
@@ -957,8 +1036,9 @@
 
   /* Category Modal Icon Grid */
   .icon-picker-grid {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
     gap: 6px;
+    max-height: 180px;
   }
 }
 

@@ -156,7 +156,7 @@ export const SupabaseConfigModal: React.FC<SupabaseConfigModalProps> = ({
             )}
           </div>
 
-          <div className="modal-footer" style={{ justifyContent: 'space-between' }}>
+          <div className="modal-footer config-modal-footer">
             <button
               type="button"
               className="btn btn-ghost"
@@ -167,7 +167,7 @@ export const SupabaseConfigModal: React.FC<SupabaseConfigModalProps> = ({
               <span>Reset ke Demo</span>
             </button>
 
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div className="config-footer-actions">
               <button type="button" className="btn btn-secondary" onClick={onClose}>
                 Tutup
               </button>
