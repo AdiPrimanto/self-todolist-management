@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { X, Plus, Trash2, Clock, User, Users, CheckSquare, Check } from 'lucide-react';
 import type { Todo, Category, UserProfile, Priority, RecurringType, Subtask } from '../types';
 import { animateModalEnter } from '../utils/animations';
+import { generateUUID } from '../utils/uuid';
 
 interface TodoModalProps {
   isOpen: boolean;
@@ -80,7 +81,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
   const handleAddSubtask = () => {
     if (!newSubtaskTitle.trim()) return;
     const newSt: Subtask = {
-      id: 'st-' + Date.now(),
+      id: generateUUID(),
       todo_id: initialTodo?.id || '',
       title: newSubtaskTitle.trim(),
       is_completed: false

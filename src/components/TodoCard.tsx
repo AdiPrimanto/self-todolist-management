@@ -132,7 +132,11 @@ export const TodoCard: React.FC<TodoCardProps> = ({
             {todo.status === 'completed' && <Check size={16} strokeWidth={3} />}
           </button>
 
-          <div>
+          <div
+            style={{ flex: 1, cursor: 'pointer' }}
+            onClick={() => onEdit(todo)}
+            title="Klik untuk melihat detail & mengedit tugas"
+          >
             <h3 className="todo-title">{todo.title}</h3>
           </div>
         </div>
@@ -197,7 +201,16 @@ export const TodoCard: React.FC<TodoCardProps> = ({
       </div>
 
       {/* Description / Notes */}
-      {todo.description && <p className="todo-description">{todo.description}</p>}
+      {todo.description && (
+        <p
+          className="todo-description"
+          onClick={() => onEdit(todo)}
+          style={{ cursor: 'pointer' }}
+          title="Klik untuk melihat detail & mengedit tugas"
+        >
+          {todo.description}
+        </p>
+      )}
 
       {/* Meta Chips: Category, Date/Time, Scope, Priority, Assignee */}
       <div className="todo-meta-row">
@@ -265,20 +278,54 @@ export const TodoCard: React.FC<TodoCardProps> = ({
       {/* Progress Section */}
       <div className="card-progress-section">
         <div className="card-progress-header">
-          <span>Progress {todo.progress_percent}%</span>
-          {subtasksCount > 0 && (
+          <span style={{ fontWeight: 700 }}>Progress {todo.progress_percent}%</span>
+          {subtasksCount > 0 ? (
             <button
               type="button"
               className="btn-ghost"
-              style={{ fontSize: '0.78rem', display: 'flex', alignItems: 'center', gap: '4px', padding: '2px 6px' }}
+              style={{
+                fontSize: '0.78rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 8px',
+                fontWeight: 600,
+                color: 'var(--tosca-700)',
+                background: 'rgba(20, 184, 166, 0.08)',
+                borderRadius: 'var(--radius-sm)'
+              }}
               onClick={() => setShowSubtasks(!showSubtasks)}
             >
               <span>{completedSubtasksCount}/{subtasksCount} checklist</span>
               {showSubtasks ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
             </button>
+          ) : (
+            <button
+              type="button"
+              className="btn-ghost"
+              style={{
+                fontSize: '0.74rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px',
+                padding: '2px 8px',
+                color: 'var(--tosca-600)',
+                background: 'rgba(20, 184, 166, 0.06)',
+                borderRadius: 'var(--radius-sm)'
+              }}
+              onClick={() => onEdit(todo)}
+              title="Tambah checklist langkah atau atur progress"
+            >
+              <span>+ Tambah Checklist</span>
+            </button>
           )}
         </div>
-        <div className="progress-track">
+        <div
+          className="progress-track"
+          style={{ cursor: 'pointer' }}
+          onClick={() => onEdit(todo)}
+          title="Klik untuk mengubah progress / checklist"
+        >
           <div className="progress-fill" style={{ width: `${todo.progress_percent}%` }} />
         </div>
       </div>

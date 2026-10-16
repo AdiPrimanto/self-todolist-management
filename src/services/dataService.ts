@@ -1,6 +1,7 @@
-import type { Todo, Category, UserProfile } from '../types';
+import type { Todo, Category, UserProfile, Subtask } from '../types';
 import { getSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { authService } from './authService';
+import { isValidUUID, generateUUID } from '../utils/uuid';
 
 export const DEMO_USERS: UserProfile[] = [];
 
@@ -104,11 +105,8 @@ class DataService {
     return data ? JSON.parse(data) : INITIAL_CATEGORIES;
   }
 
-  private generateId(prefix = 'id'): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
-    }
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+  private generateId(_prefix = 'id'): string {
+    return generateUUID();
   }
 
   async createCategory(cat: Omit<Category, 'id'>): Promise<Category> {
@@ -163,7 +161,14 @@ class DataService {
             `)
             .order('created_at', { ascending: false });
 
-          if (!error && data) return data as Todo[];
+          if (!error && data) {
+            return (data as any[]).map(todo => ({
+              ...todo,
+              subtasks: (todo.subtasks || []).sort(
+                (a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+              )
+            })) as Todo[];
+          }
         } catch (e) {
           console.warn('Supabase fetch todos failed, fallback to local', e);
         }
@@ -175,14 +180,21 @@ class DataService {
   }
 
   async saveTodo(todo: Omit<Todo, 'id' | 'created_at' | 'updated_at'> & { id?: string }): Promise<Todo> {
-    const isEdit = Boolean(todo.id);
-    const id = todo.id || this.generateId('todo');
+    const isEdit = Boolean(todo.id && isValidUUID(todo.id));
+    const id = (todo.id && isValidUUID(todo.id)) ? todo.id : generateUUID();
     const now = new Date().toISOString();
+
+    // Sanitize subtasks to have valid UUID and matching todo_id
+    const sanitizedSubtasks: Subtask[] = (todo.subtasks || []).map(st => ({
+      ...st,
+      id: isValidUUID(st.id) ? st.id : generateUUID(),
+      todo_id: id
+    }));
 
     const fullTodo: Todo = {
       ...todo,
       id,
-      subtasks: todo.subtasks || [],
+      subtasks: sanitizedSubtasks,
       created_at: now,
       updated_at: now
     };
@@ -191,12 +203,31 @@ class DataService {
       const supabase = getSupabase();
       if (supabase) {
         try {
+          const { subtasks: _, ...todoData } = fullTodo;
+
           if (isEdit) {
-            const { subtasks: _, ...todoData } = fullTodo;
             await supabase.from('todos').update(todoData).eq('id', id);
           } else {
-            const { subtasks: _, ...todoData } = fullTodo;
             await supabase.from('todos').insert(todoData);
+          }
+
+          // Sinkronisasi tabel subtasks di Supabase
+          // 1. Hapus subtask sebelumnya untuk todo ini agar konsisten
+          await supabase.from('subtasks').delete().eq('todo_id', id);
+
+          // 2. Insert subtask baru jika ada
+          if (sanitizedSubtasks.length > 0) {
+            const subtaskRows = sanitizedSubtasks.map((st, idx) => ({
+              id: st.id,
+              todo_id: id,
+              title: st.title,
+              is_completed: Boolean(st.is_completed),
+              sort_order: idx
+            }));
+            const { error: subtaskError } = await supabase.from('subtasks').insert(subtaskRows);
+            if (subtaskError) {
+              console.warn('Supabase subtasks insert error:', subtaskError);
+            }
           }
         } catch (e) {
           console.warn('Supabase save todo failed, syncing local', e);
@@ -243,10 +274,35 @@ class DataService {
     const newProgress = isCompleted ? 0 : 100;
 
     // toggle all subtasks as well
-    const updatedSubtasks = target.subtasks.map(st => ({
+    const updatedSubtasks = (target.subtasks || []).map(st => ({
       ...st,
       is_completed: !isCompleted
     }));
+
+    if (isSupabaseConfigured()) {
+      const supabase = getSupabase();
+      if (supabase) {
+        try {
+          await supabase
+            .from('todos')
+            .update({
+              status: newStatus,
+              progress_percent: newProgress,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', id);
+
+          if (updatedSubtasks.length > 0) {
+            await supabase
+              .from('subtasks')
+              .update({ is_completed: !isCompleted })
+              .eq('todo_id', id);
+          }
+        } catch (e) {
+          console.warn('Supabase toggle todo status failed:', e);
+        }
+      }
+    }
 
     const updatedTodo: Todo = {
       ...target,
@@ -256,7 +312,8 @@ class DataService {
       updated_at: new Date().toISOString()
     };
 
-    await this.saveTodo(updatedTodo);
+    const updatedList = todos.map(t => (t.id === id ? updatedTodo : t));
+    localStorage.setItem(this.todosKey, JSON.stringify(updatedList));
     return updatedTodo;
   }
 
@@ -265,8 +322,11 @@ class DataService {
     const target = todos.find(t => t.id === todoId);
     if (!target) return undefined;
 
-    const updatedSubtasks = target.subtasks.map(st =>
-      st.id === subtaskId ? { ...st, is_completed: !st.is_completed } : st
+    const targetSubtask = target.subtasks?.find(st => st.id === subtaskId);
+    const newIsCompleted = targetSubtask ? !targetSubtask.is_completed : false;
+
+    const updatedSubtasks = (target.subtasks || []).map(st =>
+      st.id === subtaskId ? { ...st, is_completed: newIsCompleted } : st
     );
 
     // Hitung progress otomatis berdasarkan subtask
@@ -274,6 +334,29 @@ class DataService {
     const completedCount = updatedSubtasks.filter(st => st.is_completed).length;
     const progress = total > 0 ? Math.round((completedCount / total) * 100) : target.progress_percent;
     const newStatus = progress === 100 ? 'completed' : progress > 0 ? 'in_progress' : 'todo';
+
+    if (isSupabaseConfigured()) {
+      const supabase = getSupabase();
+      if (supabase) {
+        try {
+          await supabase
+            .from('subtasks')
+            .update({ is_completed: newIsCompleted })
+            .eq('id', subtaskId);
+
+          await supabase
+            .from('todos')
+            .update({
+              progress_percent: progress,
+              status: newStatus,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', todoId);
+        } catch (e) {
+          console.warn('Supabase toggle subtask failed:', e);
+        }
+      }
+    }
 
     const updatedTodo: Todo = {
       ...target,
@@ -283,7 +366,8 @@ class DataService {
       updated_at: new Date().toISOString()
     };
 
-    await this.saveTodo(updatedTodo);
+    const updatedList = todos.map(t => (t.id === todoId ? updatedTodo : t));
+    localStorage.setItem(this.todosKey, JSON.stringify(updatedList));
     return updatedTodo;
   }
 
