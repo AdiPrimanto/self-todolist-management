@@ -194,6 +194,7 @@ class DataService {
     const fullTodo: Todo = {
       ...todo,
       id,
+      due_date: todo.due_date ? new Date(todo.due_date).toISOString() : undefined,
       subtasks: sanitizedSubtasks,
       created_at: now,
       updated_at: now
@@ -205,28 +206,50 @@ class DataService {
         try {
           const { subtasks: _, ...todoData } = fullTodo;
 
+          // Sanitasi agar sesuai dengan constraint skema PostgreSQL Supabase (UUID & Timestamptz)
+          const supabaseTodoData = {
+            ...todoData,
+            category_id: isValidUUID(todoData.category_id) ? todoData.category_id : null,
+            assigned_to: isValidUUID(todoData.assigned_to) ? todoData.assigned_to : null,
+            created_by: isValidUUID(todoData.created_by) ? todoData.created_by : (this.getCurrentUser()?.id && isValidUUID(this.getCurrentUser()?.id) ? this.getCurrentUser()!.id : null),
+            due_date: todoData.due_date ? new Date(todoData.due_date).toISOString() : null
+          };
+
+          let saveSuccess = false;
           if (isEdit) {
-            await supabase.from('todos').update(todoData).eq('id', id);
+            const { error: updateError } = await supabase.from('todos').update(supabaseTodoData).eq('id', id);
+            if (!updateError) {
+              saveSuccess = true;
+            } else {
+              console.warn('Supabase update todo error:', updateError);
+            }
           } else {
-            await supabase.from('todos').insert(todoData);
+            const { error: insertError } = await supabase.from('todos').insert(supabaseTodoData);
+            if (!insertError) {
+              saveSuccess = true;
+            } else {
+              console.warn('Supabase insert todo error:', insertError);
+            }
           }
 
-          // Sinkronisasi tabel subtasks di Supabase
-          // 1. Hapus subtask sebelumnya untuk todo ini agar konsisten
-          await supabase.from('subtasks').delete().eq('todo_id', id);
+          if (saveSuccess) {
+            // Sinkronisasi tabel subtasks di Supabase
+            // 1. Hapus subtask sebelumnya untuk todo ini agar konsisten
+            await supabase.from('subtasks').delete().eq('todo_id', id);
 
-          // 2. Insert subtask baru jika ada
-          if (sanitizedSubtasks.length > 0) {
-            const subtaskRows = sanitizedSubtasks.map((st, idx) => ({
-              id: st.id,
-              todo_id: id,
-              title: st.title,
-              is_completed: Boolean(st.is_completed),
-              sort_order: idx
-            }));
-            const { error: subtaskError } = await supabase.from('subtasks').insert(subtaskRows);
-            if (subtaskError) {
-              console.warn('Supabase subtasks insert error:', subtaskError);
+            // 2. Insert subtask baru jika ada
+            if (sanitizedSubtasks.length > 0) {
+              const subtaskRows = sanitizedSubtasks.map((st, idx) => ({
+                id: st.id,
+                todo_id: id,
+                title: st.title,
+                is_completed: Boolean(st.is_completed),
+                sort_order: idx
+              }));
+              const { error: subtaskError } = await supabase.from('subtasks').insert(subtaskRows);
+              if (subtaskError) {
+                console.warn('Supabase subtasks insert error:', subtaskError);
+              }
             }
           }
         } catch (e) {
@@ -235,13 +258,15 @@ class DataService {
       }
     }
 
-    const todos = await this.getTodos();
+    // Selalu sinkronkan ke penyimpanan lokal secara konsisten
+    const localData = localStorage.getItem(this.todosKey);
+    const localTodos: Todo[] = localData ? JSON.parse(localData) : [];
     let updatedList: Todo[];
-    const exists = todos.some(t => t.id === id);
+    const exists = localTodos.some(t => t.id === id);
     if (isEdit && exists) {
-      updatedList = todos.map(t => (t.id === id ? { ...t, ...fullTodo, updated_at: now } : t));
+      updatedList = localTodos.map(t => (t.id === id ? { ...t, ...fullTodo, updated_at: now } : t));
     } else {
-      updatedList = [fullTodo, ...todos];
+      updatedList = [fullTodo, ...localTodos.filter(t => t.id !== id)];
     }
 
     localStorage.setItem(this.todosKey, JSON.stringify(updatedList));

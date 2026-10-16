@@ -168,7 +168,8 @@ USING (true);
 CREATE POLICY "Users can modify subtasks"
 ON public.subtasks FOR ALL
 TO authenticated, anon
-USING (true);
+USING (true)
+WITH CHECK (true);
 
 -- Seed Default Categories
 INSERT INTO public.categories (name, icon, color, is_default) VALUES

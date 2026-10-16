@@ -62,33 +62,35 @@ export const TodoCard: React.FC<TodoCardProps> = ({
 
   if (todo.due_date) {
     const due = new Date(todo.due_date);
-    const isSameDay =
-      due.getDate() === now.getDate() &&
-      due.getMonth() === now.getMonth() &&
-      due.getFullYear() === now.getFullYear();
+    if (!isNaN(due.getTime())) {
+      const isSameDay =
+        due.getDate() === now.getDate() &&
+        due.getMonth() === now.getMonth() &&
+        due.getFullYear() === now.getFullYear();
 
-    const tomorrow = new Date();
-    tomorrow.setDate(now.getDate() + 1);
-    const isTomorrow =
-      due.getDate() === tomorrow.getDate() &&
-      due.getMonth() === tomorrow.getMonth() &&
-      due.getFullYear() === tomorrow.getFullYear();
+      const tomorrow = new Date();
+      tomorrow.setDate(now.getDate() + 1);
+      const isTomorrow =
+        due.getDate() === tomorrow.getDate() &&
+        due.getMonth() === tomorrow.getMonth() &&
+        due.getFullYear() === tomorrow.getFullYear();
 
-    const timeStr = due.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+      const timeStr = due.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
 
-    if (isSameDay) {
-      dueDateLabel = `Hari ini, ${timeStr}`;
-      isDueToday = true;
-      if (due.getTime() < now.getTime() && todo.status !== 'completed') {
-        isOverdue = true;
-      }
-    } else if (isTomorrow) {
-      dueDateLabel = `Besok, ${timeStr}`;
-    } else {
-      const dateStr = due.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
-      dueDateLabel = `${dateStr}, ${timeStr}`;
-      if (due.getTime() < now.getTime() && todo.status !== 'completed') {
-        isOverdue = true;
+      if (isSameDay) {
+        dueDateLabel = `Hari ini, ${timeStr}`;
+        isDueToday = true;
+        if (due.getTime() < now.getTime() && todo.status !== 'completed') {
+          isOverdue = true;
+        }
+      } else if (isTomorrow) {
+        dueDateLabel = `Besok, ${timeStr}`;
+      } else {
+        const dateStr = due.toLocaleDateString('id-ID', { day: 'numeric', month: 'short' });
+        dueDateLabel = `${dateStr}, ${timeStr}`;
+        if (due.getTime() < now.getTime() && todo.status !== 'completed') {
+          isOverdue = true;
+        }
       }
     }
   }
@@ -229,7 +231,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
         )}
 
         {/* Due Date & Time */}
-        {todo.due_date && (
+        {todo.due_date && dueDateLabel && (
           <span className={`date-chip ${isOverdue ? 'overdue' : isDueToday ? 'due-today' : ''}`}>
             <Clock size={12} />
             <span>{dueDateLabel} {isOverdue ? '(Terlambat)' : ''}</span>

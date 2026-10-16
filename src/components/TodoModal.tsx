@@ -37,13 +37,34 @@ export const TodoModal: React.FC<TodoModalProps> = ({
 
   const modalRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const prevIsOpenRef = useRef(false);
+  const prevTodoIdRef = useRef<string | undefined>(undefined);
+
+  // Helper untuk mengubah string ISO / Date menjadi format input datetime-local (YYYY-MM-DDTHH:mm)
+  const formatToDateTimeLocal = (dateStr?: string | null): string => {
+    if (!dateStr) return '';
+    try {
+      const d = new Date(dateStr);
+      if (isNaN(d.getTime())) return '';
+      const pad = (n: number) => n.toString().padStart(2, '0');
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    } catch {
+      return '';
+    }
+  };
 
   useEffect(() => {
-    if (isOpen) {
+    const isOpening = isOpen && !prevIsOpenRef.current;
+    const isTodoChanging = isOpen && initialTodo?.id !== prevTodoIdRef.current;
+
+    if (isOpening || isTodoChanging) {
+      prevIsOpenRef.current = isOpen;
+      prevTodoIdRef.current = initialTodo?.id;
+
       if (initialTodo) {
         setTitle(initialTodo.title);
         setDescription(initialTodo.description || '');
-        setDueDate(initialTodo.due_date || '');
+        setDueDate(formatToDateTimeLocal(initialTodo.due_date));
         setCategoryId(initialTodo.category_id || (categories[0]?.id || ''));
         setPriority(initialTodo.priority);
         setIsShared(initialTodo.is_shared);
@@ -51,6 +72,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
         setRecurring(initialTodo.is_recurring || 'none');
         setProgressPercent(initialTodo.progress_percent || 0);
         setSubtasks(initialTodo.subtasks ? [...initialTodo.subtasks] : []);
+        setNewSubtaskTitle('');
       } else {
         // Default new todo
         setTitle('');
@@ -64,15 +86,21 @@ export const TodoModal: React.FC<TodoModalProps> = ({
         setCategoryId(categories[0]?.id || '');
         setPriority('medium');
         setIsShared(false);
-        setAssignedTo(currentUser.id);
+        setAssignedTo(currentUser?.id || '');
         setRecurring('none');
         setProgressPercent(0);
         setSubtasks([]);
+        setNewSubtaskTitle('');
       }
 
       if (modalRef.current) {
         animateModalEnter(modalRef.current, overlayRef.current || undefined);
       }
+    }
+
+    if (!isOpen) {
+      prevIsOpenRef.current = false;
+      prevTodoIdRef.current = undefined;
     }
   }, [isOpen, initialTodo, categories, currentUser]);
 
@@ -123,22 +151,41 @@ export const TodoModal: React.FC<TodoModalProps> = ({
     e.preventDefault();
     if (!title.trim()) return;
 
-    const status = progressPercent === 100 ? 'completed' : progressPercent > 0 ? 'in_progress' : 'todo';
+    // Otomatis tambahkan subtask yang masih diketik di input jika pengguna lupa klik '+'
+    let finalSubtasks = [...subtasks];
+    if (newSubtaskTitle.trim()) {
+      finalSubtasks.push({
+        id: generateUUID(),
+        todo_id: initialTodo?.id || '',
+        title: newSubtaskTitle.trim(),
+        is_completed: false
+      });
+      setNewSubtaskTitle('');
+    }
+
+    // Hitung persentase progress akhir
+    let finalProgress = progressPercent;
+    if (finalSubtasks.length > 0) {
+      const completedCount = finalSubtasks.filter(s => s.is_completed).length;
+      finalProgress = Math.round((completedCount / finalSubtasks.length) * 100);
+    }
+
+    const status = finalProgress === 100 ? 'completed' : finalProgress > 0 ? 'in_progress' : 'todo';
 
     onSave({
       id: initialTodo?.id,
       title: title.trim(),
       description: description.trim() || undefined,
-      due_date: dueDate || undefined,
+      due_date: dueDate ? new Date(dueDate).toISOString() : undefined,
       priority,
       status,
-      progress_percent: progressPercent,
-      category_id: categoryId,
+      progress_percent: finalProgress,
+      category_id: categoryId || categories[0]?.id || '',
       created_by: initialTodo?.created_by || currentUser.id,
       assigned_to: isShared ? (assignedTo || currentUser.id) : currentUser.id,
       is_shared: isShared,
       is_recurring: recurring,
-      subtasks
+      subtasks: finalSubtasks
     });
 
     onClose();
