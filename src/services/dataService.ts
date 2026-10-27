@@ -131,7 +131,7 @@ class DataService {
   private async cleanupDuplicateCategories(duplicateMap: Map<string, string>): Promise<void> {
     if (duplicateMap.size === 0) return;
 
-    for (const [dupId, canonId] of duplicateMap.entries()) {
+    for (const [dupId, canonId] of Array.from(duplicateMap.entries())) {
       this.categoryDuplicateMap.set(dupId, canonId);
     }
 
@@ -139,7 +139,7 @@ class DataService {
     if (isSupabaseConfigured()) {
       const supabase = getSupabase();
       if (supabase) {
-        for (const [dupId, canonId] of duplicateMap.entries()) {
+        for (const [dupId, canonId] of Array.from(duplicateMap.entries())) {
           try {
             await supabase.from('todos').update({ category_id: canonId }).eq('category_id', dupId);
             await supabase.from('categories').delete().eq('id', dupId);
