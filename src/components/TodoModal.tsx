@@ -53,6 +53,20 @@ export const TodoModal: React.FC<TodoModalProps> = ({
     }
   };
 
+  // Pastikan kategori unik berdasarkan nama & id agar tidak ada opsi ganda di dropdown
+  const uniqueCategories = React.useMemo(() => {
+    const seen = new Set<string>();
+    const list: Category[] = [];
+    for (const cat of categories) {
+      const key = cat.name.trim().toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(cat);
+      }
+    }
+    return list;
+  }, [categories]);
+
   useEffect(() => {
     const isOpening = isOpen && !prevIsOpenRef.current;
     const isTodoChanging = isOpen && initialTodo?.id !== prevTodoIdRef.current;
@@ -65,7 +79,11 @@ export const TodoModal: React.FC<TodoModalProps> = ({
         setTitle(initialTodo.title);
         setDescription(initialTodo.description || '');
         setDueDate(formatToDateTimeLocal(initialTodo.due_date));
-        setCategoryId(initialTodo.category_id || (categories[0]?.id || ''));
+        const matchedCat = uniqueCategories.find(c =>
+          c.id === initialTodo.category_id ||
+          (initialTodo.category_id && c.name.toLowerCase() === categories.find(raw => raw.id === initialTodo.category_id)?.name.toLowerCase())
+        );
+        setCategoryId(matchedCat ? matchedCat.id : (uniqueCategories[0]?.id || ''));
         setPriority(initialTodo.priority);
         setIsShared(initialTodo.is_shared);
         setAssignedTo(initialTodo.assigned_to || '');
@@ -83,7 +101,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
         const pad = (n: number) => n.toString().padStart(2, '0');
         const defaultDue = `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
         setDueDate(defaultDue);
-        setCategoryId(categories[0]?.id || '');
+        setCategoryId(uniqueCategories[0]?.id || '');
         setPriority('medium');
         setIsShared(false);
         setAssignedTo(currentUser?.id || '');
@@ -102,7 +120,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
       prevIsOpenRef.current = false;
       prevTodoIdRef.current = undefined;
     }
-  }, [isOpen, initialTodo, categories, currentUser]);
+  }, [isOpen, initialTodo, uniqueCategories, categories, currentUser]);
 
   if (!isOpen) return null;
 
@@ -180,7 +198,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
       priority,
       status,
       progress_percent: finalProgress,
-      category_id: categoryId || categories[0]?.id || '',
+      category_id: categoryId || uniqueCategories[0]?.id || '',
       created_by: initialTodo?.created_by || currentUser.id,
       assigned_to: isShared ? (assignedTo || currentUser.id) : currentUser.id,
       is_shared: isShared,
@@ -260,7 +278,7 @@ export const TodoModal: React.FC<TodoModalProps> = ({
                   value={categoryId}
                   onChange={e => setCategoryId(e.target.value)}
                 >
-                  {categories.map(cat => (
+                  {uniqueCategories.map(cat => (
                     <option key={cat.id} value={cat.id}>
                       {cat.name}
                     </option>

@@ -22,6 +22,8 @@ class DataService {
   private categoriesKey = 'zentask_categories_v1';
   private currentUserKey = 'zentask_current_user_v1';
 
+  private categoryDuplicateMap: Map<string, string> = new Map();
+
   constructor() {
     this.initLocalStorage();
   }
@@ -41,6 +43,18 @@ class DataService {
     }
     if (!localStorage.getItem(this.categoriesKey)) {
       localStorage.setItem(this.categoriesKey, JSON.stringify(INITIAL_CATEGORIES));
+    } else {
+      try {
+        const stored = JSON.parse(localStorage.getItem(this.categoriesKey) || '[]');
+        if (Array.isArray(stored) && stored.length > 0) {
+          const { uniqueCategories } = this.deduplicateCategoriesList(stored);
+          if (uniqueCategories.length !== stored.length) {
+            localStorage.setItem(this.categoriesKey, JSON.stringify(uniqueCategories));
+          }
+        }
+      } catch {
+        // ignore
+      }
     }
   }
 
@@ -89,20 +103,107 @@ class DataService {
     return authService.getRegisteredUsers();
   }
 
+  public deduplicateCategoriesList(categories: Category[]): {
+    uniqueCategories: Category[];
+    duplicateMap: Map<string, string>;
+  } {
+    const seenNames = new Map<string, Category>();
+    const duplicateMap = new Map<string, string>(); // dupId -> canonicalId
+    const uniqueCategories: Category[] = [];
+
+    // Prioritaskan kategori yang memiliki is_default: true
+    const sortedCategories = [...categories].sort((a, b) => (b.is_default ? 1 : 0) - (a.is_default ? 1 : 0));
+
+    for (const cat of sortedCategories) {
+      const normalized = cat.name.trim().toLowerCase();
+      if (!seenNames.has(normalized)) {
+        seenNames.set(normalized, cat);
+        uniqueCategories.push(cat);
+      } else {
+        const canonical = seenNames.get(normalized)!;
+        duplicateMap.set(cat.id, canonical.id);
+      }
+    }
+
+    return { uniqueCategories, duplicateMap };
+  }
+
+  private async cleanupDuplicateCategories(duplicateMap: Map<string, string>): Promise<void> {
+    if (duplicateMap.size === 0) return;
+
+    for (const [dupId, canonId] of duplicateMap.entries()) {
+      this.categoryDuplicateMap.set(dupId, canonId);
+    }
+
+    // 1. Bersihkan di Supabase
+    if (isSupabaseConfigured()) {
+      const supabase = getSupabase();
+      if (supabase) {
+        for (const [dupId, canonId] of duplicateMap.entries()) {
+          try {
+            await supabase.from('todos').update({ category_id: canonId }).eq('category_id', dupId);
+            await supabase.from('categories').delete().eq('id', dupId);
+          } catch (e) {
+            console.warn(`Supabase cleanup duplicate category failed (${dupId}):`, e);
+          }
+        }
+      }
+    }
+
+    // 2. Bersihkan di localStorage
+    try {
+      const localTodosRaw = localStorage.getItem(this.todosKey);
+      if (localTodosRaw) {
+        const localTodos: Todo[] = JSON.parse(localTodosRaw);
+        let updated = false;
+        for (const t of localTodos) {
+          if (t.category_id && duplicateMap.has(t.category_id)) {
+            t.category_id = duplicateMap.get(t.category_id)!;
+            updated = true;
+          }
+        }
+        if (updated) {
+          localStorage.setItem(this.todosKey, JSON.stringify(localTodos));
+        }
+      }
+    } catch (e) {
+      console.warn('LocalStorage todos cleanup failed:', e);
+    }
+  }
+
   async getCategories(): Promise<Category[]> {
+    let rawCategories: Category[] = [];
+
     if (isSupabaseConfigured()) {
       const supabase = getSupabase();
       if (supabase) {
         try {
           const { data, error } = await supabase.from('categories').select('*').order('name');
-          if (!error && data && data.length > 0) return data as Category[];
+          if (!error && data && data.length > 0) {
+            rawCategories = data as Category[];
+          }
         } catch (e) {
           console.warn('Supabase fetch categories failed, fallback to local', e);
         }
       }
     }
-    const data = localStorage.getItem(this.categoriesKey);
-    return data ? JSON.parse(data) : INITIAL_CATEGORIES;
+
+    if (rawCategories.length === 0) {
+      const data = localStorage.getItem(this.categoriesKey);
+      rawCategories = data ? JSON.parse(data) : INITIAL_CATEGORIES;
+    }
+
+    // Deduplikasi kategori berdasarkan nama yang sama
+    const { uniqueCategories, duplicateMap } = this.deduplicateCategoriesList(rawCategories);
+
+    if (duplicateMap.size > 0) {
+      this.cleanupDuplicateCategories(duplicateMap).catch(err => {
+        console.warn('Background cleanup duplicate categories failed:', err);
+      });
+      localStorage.setItem(this.categoriesKey, JSON.stringify(uniqueCategories));
+    }
+
+    return uniqueCategories;
   }
 
   private generateId(_prefix = 'id'): string {
@@ -110,8 +211,21 @@ class DataService {
   }
 
   async createCategory(cat: Omit<Category, 'id'>): Promise<Category> {
-    const newCategory: Category = {
+    const categories = await this.getCategories();
+    const existing = categories.find(
+      c => c.name.trim().toLowerCase() === cat.name.trim().toLowerCase()
+    );
+    if (existing) {
+      return existing;
+    }
+
+    const trimmedCat = {
       ...cat,
+      name: cat.name.trim()
+    };
+
+    const newCategory: Category = {
+      ...trimmedCat,
       id: this.generateId('cat')
     };
 
@@ -119,7 +233,7 @@ class DataService {
       const supabase = getSupabase();
       if (supabase) {
         try {
-          const { data, error } = await supabase.from('categories').insert(cat).select().single();
+          const { data, error } = await supabase.from('categories').insert(trimmedCat).select().single();
           if (!error && data) return data as Category;
         } catch (e) {
           console.warn('Supabase category insert failed, fallback to local', e);
@@ -127,7 +241,6 @@ class DataService {
       }
     }
 
-    const categories = await this.getCategories();
     categories.push(newCategory);
     localStorage.setItem(this.categoriesKey, JSON.stringify(categories));
     return newCategory;
@@ -149,6 +262,8 @@ class DataService {
   }
 
   async getTodos(): Promise<Todo[]> {
+    let result: Todo[] = [];
+
     if (isSupabaseConfigured()) {
       const supabase = getSupabase();
       if (supabase) {
@@ -162,7 +277,7 @@ class DataService {
             .order('created_at', { ascending: false });
 
           if (!error && data) {
-            return (data as any[]).map(todo => ({
+            result = (data as any[]).map(todo => ({
               ...todo,
               subtasks: (todo.subtasks || []).sort(
                 (a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
@@ -175,8 +290,21 @@ class DataService {
       }
     }
 
-    const data = localStorage.getItem(this.todosKey);
-    return data ? JSON.parse(data) : INITIAL_TODOS;
+    if (result.length === 0) {
+      const data = localStorage.getItem(this.todosKey);
+      result = data ? JSON.parse(data) : INITIAL_TODOS;
+    }
+
+    // Remap kategori duplikat jika ada mapping tersimpan
+    if (this.categoryDuplicateMap.size > 0) {
+      result.forEach(todo => {
+        if (todo.category_id && this.categoryDuplicateMap.has(todo.category_id)) {
+          todo.category_id = this.categoryDuplicateMap.get(todo.category_id)!;
+        }
+      });
+    }
+
+    return result;
   }
 
   async saveTodo(todo: Omit<Todo, 'id' | 'created_at' | 'updated_at'> & { id?: string }): Promise<Todo> {

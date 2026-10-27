@@ -28,6 +28,19 @@ export const TodoFilters: React.FC<TodoFiltersProps> = ({
   onViewModeChange,
   onOpenAddCategory
 }) => {
+  const uniqueCategories = React.useMemo(() => {
+    const seen = new Set<string>();
+    const list: Category[] = [];
+    for (const cat of categories) {
+      const key = cat.name.trim().toLowerCase();
+      if (!seen.has(key)) {
+        seen.add(key);
+        list.push(cat);
+      }
+    }
+    return list;
+  }, [categories]);
+
   return (
     <div className="controls-panel">
       {/* Search Bar & View Switcher */}
@@ -127,7 +140,7 @@ export const TodoFilters: React.FC<TodoFiltersProps> = ({
           Semua Kategori
         </button>
 
-        {categories.map(cat => (
+        {uniqueCategories.map(cat => (
           <button
             key={cat.id}
             type="button"

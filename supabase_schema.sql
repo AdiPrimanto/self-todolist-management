@@ -60,7 +60,8 @@ CREATE TABLE IF NOT EXISTS public.categories (
   color TEXT NOT NULL DEFAULT '#0d9488',
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE,
   is_default BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+  created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+  CONSTRAINT categories_name_unique UNIQUE (name)
 );
 
 -- 4. Todos Table
@@ -171,6 +172,49 @@ TO authenticated, anon
 USING (true)
 WITH CHECK (true);
 
+-- Bersihkan kategori duplikat yang sudah ada di database sebelum constraint UNIQUE
+DO $$
+DECLARE
+  rec RECORD;
+  keep_id UUID;
+BEGIN
+  FOR rec IN (
+    SELECT LOWER(TRIM(name)) as clean_name
+    FROM public.categories
+    GROUP BY LOWER(TRIM(name))
+    HAVING COUNT(*) > 1
+  ) LOOP
+    -- Ambil id pertama (tertua) sebagai id utama
+    SELECT id INTO keep_id
+    FROM public.categories
+    WHERE LOWER(TRIM(name)) = rec.clean_name
+    ORDER BY created_at ASC
+    LIMIT 1;
+
+    -- Pindahkan todo yang mengarah ke id duplikat ke id utama
+    UPDATE public.todos
+    SET category_id = keep_id
+    WHERE category_id IN (
+      SELECT id FROM public.categories
+      WHERE LOWER(TRIM(name)) = rec.clean_name AND id != keep_id
+    );
+
+    -- Hapus kategori duplikat
+    DELETE FROM public.categories
+    WHERE LOWER(TRIM(name)) = rec.clean_name AND id != keep_id;
+  END LOOP;
+END $$;
+
+-- Pastikan constraint UNIQUE aktif
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'categories_name_unique'
+  ) THEN
+    ALTER TABLE public.categories ADD CONSTRAINT categories_name_unique UNIQUE (name);
+  END IF;
+END $$;
+
 -- Seed Default Categories
 INSERT INTO public.categories (name, icon, color, is_default) VALUES
 ('Pribadi', 'User', '#0d9488', true),
@@ -179,4 +223,4 @@ INSERT INTO public.categories (name, icon, color, is_default) VALUES
 ('Ibadah & Doa', 'Sparkles', '#14b8a6', true),
 ('Rumah Tangga', 'Home', '#0284c7', true),
 ('Kesehatan & Habit', 'Heart', '#e11d48', true)
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name) DO NOTHING;

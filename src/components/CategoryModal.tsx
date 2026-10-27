@@ -8,6 +8,7 @@ interface CategoryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (category: Omit<Category, 'id'>) => void;
+  existingCategories?: Category[];
 }
 
 const PRESET_COLORS = [
@@ -23,10 +24,11 @@ const PRESET_COLORS = [
   '#ca8a04'  // Gold / Amber
 ];
 
-export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave }) => {
+export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, existingCategories = [] }) => {
   const [name, setName] = useState('');
   const [selectedIcon, setSelectedIcon] = useState('Folder');
   const [selectedColor, setSelectedColor] = useState('#0d9488');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const modalRef = useRef<HTMLDivElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -34,6 +36,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
   useEffect(() => {
     if (isOpen) {
       setName('');
+      setErrorMsg('');
       setSelectedIcon('Folder');
       setSelectedColor('#0d9488');
       if (modalRef.current) {
@@ -44,12 +47,28 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
 
   if (!isOpen) return null;
 
+  const handleNameChange = (val: string) => {
+    setName(val);
+    const trimmed = val.trim().toLowerCase();
+    if (trimmed && existingCategories.some(c => c.name.trim().toLowerCase() === trimmed)) {
+      setErrorMsg('Kategori dengan nama ini sudah ada.');
+    } else {
+      setErrorMsg('');
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    const trimmed = name.trim();
+    if (!trimmed) return;
+
+    if (existingCategories.some(c => c.name.trim().toLowerCase() === trimmed.toLowerCase())) {
+      setErrorMsg('Kategori dengan nama ini sudah ada.');
+      return;
+    }
 
     onSave({
-      name: name.trim(),
+      name: trimmed,
       icon: selectedIcon,
       color: selectedColor,
       is_default: false
@@ -80,12 +99,18 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
                 id="cat-name-input"
                 type="text"
                 className="form-input"
+                style={errorMsg ? { borderColor: '#ef4444' } : undefined}
                 placeholder="Misal: Finansial, Belajar, Liburan..."
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={e => handleNameChange(e.target.value)}
                 required
                 autoFocus
               />
+              {errorMsg && (
+                <p style={{ color: '#ef4444', fontSize: '0.78rem', marginTop: '4px', fontWeight: 500 }}>
+                  {errorMsg}
+                </p>
+              )}
             </div>
 
             {/* Live Preview */}
@@ -109,7 +134,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
               >
                 <CategoryIcon name={selectedIcon} size={18} color={selectedColor} />
                 <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {name || 'Nama Kategori'}
+                  {name.trim() || 'Nama Kategori'}
                 </span>
               </div>
             </div>
@@ -162,7 +187,7 @@ export const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, o
             <button type="button" className="btn btn-secondary" onClick={onClose}>
               Batal
             </button>
-            <button type="submit" className="btn btn-primary">
+            <button type="submit" className="btn btn-primary" disabled={Boolean(errorMsg)}>
               Simpan Kategori
             </button>
           </div>

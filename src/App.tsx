@@ -66,11 +66,11 @@ export function App() {
   }, []);
 
   const loadData = useCallback(async () => {
-    const loadedTodos = await dataService.getTodos();
     const loadedCategories = await dataService.getCategories();
+    const loadedTodos = await dataService.getTodos();
     const loadedUsers = await dataService.getUsers();
-    setTodos(loadedTodos);
     setCategories(loadedCategories);
+    setTodos(loadedTodos);
     setAvailableUsers(loadedUsers);
     setIsSupabaseLive(isSupabaseConfigured());
   }, []);
@@ -164,7 +164,12 @@ export function App() {
 
   const handleSaveCategory = async (catData: Omit<Category, 'id'>) => {
     const newCat = await dataService.createCategory(catData);
-    setCategories(prev => [...prev, newCat]);
+    setCategories(prev => {
+      if (prev.some(c => c.id === newCat.id || c.name.trim().toLowerCase() === newCat.name.trim().toLowerCase())) {
+        return prev;
+      }
+      return [...prev, newCat];
+    });
     soundManager.playSuccess();
   };
 
@@ -193,8 +198,14 @@ export function App() {
       }
 
       // 3. Category Filter
-      if (activeCategoryId && todo.category_id !== activeCategoryId) {
-        return false;
+      if (activeCategoryId) {
+        const activeCat = categories.find(c => c.id === activeCategoryId);
+        const todoCat = categories.find(c => c.id === todo.category_id);
+        const isCatMatch =
+          todo.category_id === activeCategoryId ||
+          Boolean(activeCat && todoCat && activeCat.name.trim().toLowerCase() === todoCat.name.trim().toLowerCase());
+
+        if (!isCatMatch) return false;
       }
 
       // 4. Scope Filter
@@ -342,6 +353,7 @@ export function App() {
         isOpen={isCategoryModalOpen}
         onClose={() => setIsCategoryModalOpen(false)}
         onSave={handleSaveCategory}
+        existingCategories={categories}
       />
 
       <SupabaseConfigModal
