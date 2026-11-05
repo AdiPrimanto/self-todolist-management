@@ -116,6 +116,18 @@ export const TodoCard: React.FC<TodoCardProps> = ({
   const subtasksCount = todo.subtasks?.length || 0;
   const completedSubtasksCount = todo.subtasks?.filter(s => s.is_completed).length || 0;
 
+  // Urutkan checklist: yang belum diceklist tampil di atas
+  const sortedSubtasks = React.useMemo(() => {
+    return [...(todo.subtasks || [])].sort((a, b) => {
+      if (a.is_completed !== b.is_completed) {
+        return a.is_completed ? 1 : -1;
+      }
+      const aOrder = typeof a.sort_order === 'number' && !isNaN(a.sort_order) ? a.sort_order : 0;
+      const bOrder = typeof b.sort_order === 'number' && !isNaN(b.sort_order) ? b.sort_order : 0;
+      return aOrder - bOrder;
+    });
+  }, [todo.subtasks]);
+
   return (
     <article
       ref={cardRef}
@@ -335,7 +347,7 @@ export const TodoCard: React.FC<TodoCardProps> = ({
       {/* Subtasks Accordion */}
       {subtasksCount > 0 && showSubtasks && (
         <div className="subtasks-list-box">
-          {todo.subtasks.map(subtask => (
+          {sortedSubtasks.map(subtask => (
             <div
               key={subtask.id}
               className={`subtask-item ${subtask.is_completed ? 'completed' : ''}`}

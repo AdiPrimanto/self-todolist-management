@@ -177,7 +177,7 @@ export function App() {
   const filteredTodos = useMemo(() => {
     const now = new Date();
 
-    return todos.filter(todo => {
+    const filtered = todos.filter(todo => {
       if (!currentUser) return false;
 
       // 1. User access permission (Personal belongs to user, or it's shared)
@@ -233,6 +233,20 @@ export function App() {
       }
 
       return true;
+    });
+
+    // Urutkan: tugas yang belum diceklist (belum selesai) di posisi atas
+    return [...filtered].sort((a, b) => {
+      const aDone = a.status === 'completed';
+      const bDone = b.status === 'completed';
+      if (aDone !== bDone) {
+        return aDone ? 1 : -1;
+      }
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      const validATime = isNaN(aTime) ? 0 : aTime;
+      const validBTime = isNaN(bTime) ? 0 : bTime;
+      return validBTime - validATime;
     });
   }, [todos, currentUser, searchQuery, activeCategoryId, activeScope]);
 

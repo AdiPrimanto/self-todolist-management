@@ -280,7 +280,10 @@ class DataService {
             result = (data as any[]).map(todo => ({
               ...todo,
               subtasks: (todo.subtasks || []).sort(
-                (a: any, b: any) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+                (a: any, b: any) => {
+                  if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+                  return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+                }
               )
             })) as Todo[];
           }
@@ -303,6 +306,28 @@ class DataService {
         }
       });
     }
+
+    // Urutkan checklist/subtasks di setiap tugas: yang belum selesai tampil di atas
+    result.forEach(todo => {
+      if (todo.subtasks) {
+        todo.subtasks.sort((a, b) => {
+          if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+          return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+        });
+      }
+    });
+
+    // Urutkan tugas: yang belum diceklist (belum selesai) di posisi atas
+    result.sort((a, b) => {
+      const aDone = a.status === 'completed';
+      const bDone = b.status === 'completed';
+      if (aDone !== bDone) return aDone ? 1 : -1;
+      const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+      const validATime = isNaN(aTime) ? 0 : aTime;
+      const validBTime = isNaN(bTime) ? 0 : bTime;
+      return validBTime - validATime;
+    });
 
     return result;
   }
@@ -481,6 +506,12 @@ class DataService {
     const updatedSubtasks = (target.subtasks || []).map(st =>
       st.id === subtaskId ? { ...st, is_completed: newIsCompleted } : st
     );
+
+    // Pastikan urutan subtask: belum selesai di atas
+    updatedSubtasks.sort((a, b) => {
+      if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
 
     // Hitung progress otomatis berdasarkan subtask
     const total = updatedSubtasks.length;

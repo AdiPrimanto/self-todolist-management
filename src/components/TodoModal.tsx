@@ -89,7 +89,14 @@ export const TodoModal: React.FC<TodoModalProps> = ({
         setAssignedTo(initialTodo.assigned_to || '');
         setRecurring(initialTodo.is_recurring || 'none');
         setProgressPercent(initialTodo.progress_percent || 0);
-        setSubtasks(initialTodo.subtasks ? [...initialTodo.subtasks] : []);
+        setSubtasks(
+          initialTodo.subtasks
+            ? [...initialTodo.subtasks].sort((a, b) => {
+                if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+                return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+              })
+            : []
+        );
         setNewSubtaskTitle('');
       } else {
         // Default new todo
@@ -130,9 +137,13 @@ export const TodoModal: React.FC<TodoModalProps> = ({
       id: generateUUID(),
       todo_id: initialTodo?.id || '',
       title: newSubtaskTitle.trim(),
-      is_completed: false
+      is_completed: false,
+      sort_order: subtasks.length
     };
-    const updated = [...subtasks, newSt];
+    const updated = [...subtasks, newSt].sort((a, b) => {
+      if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
     setSubtasks(updated);
     setNewSubtaskTitle('');
     // Auto calculate progress
@@ -176,10 +187,16 @@ export const TodoModal: React.FC<TodoModalProps> = ({
         id: generateUUID(),
         todo_id: initialTodo?.id || '',
         title: newSubtaskTitle.trim(),
-        is_completed: false
+        is_completed: false,
+        sort_order: subtasks.length
       });
       setNewSubtaskTitle('');
     }
+
+    finalSubtasks.sort((a, b) => {
+      if (a.is_completed !== b.is_completed) return a.is_completed ? 1 : -1;
+      return (a.sort_order ?? 0) - (b.sort_order ?? 0);
+    });
 
     // Hitung persentase progress akhir
     let finalProgress = progressPercent;

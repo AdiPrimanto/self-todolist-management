@@ -17,6 +17,7 @@ export interface Subtask {
   todo_id: string;
   title: string;
   is_completed: boolean;
+  sort_order?: number;
 }
 
 export interface Category {
